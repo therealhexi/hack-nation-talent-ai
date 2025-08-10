@@ -1,24 +1,28 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { fromJson, tokenizeUnigramsBigrams, tfidfVector, toJson } from '@/lib/text';
+import { tokenizeUnigramsBigrams, tfidfVector, toJson } from '@/lib/text';
 
 // In-memory runner state
 const runningJobs = new Map<number, NodeJS.Timeout[]>();
 
-function getOrCreateDemoCandidateId(): number {
+function getOrCreateCandidateByGithubUserId(githubUserId: string, githubLogin: string): number {
   const db = getDb();
   const sel = db.prepare('SELECT id FROM candidate WHERE github_user_id = ?');
-  const row = sel.get('local-demo-user-1') as { id: number } | undefined;
+  const row = sel.get(githubUserId) as { id: number } | undefined;
   if (row) return row.id;
   const ins = db.prepare(`INSERT INTO candidate (github_user_id, github_login, name, avatar_url, email, connected_at, evaluation_status)
     VALUES (?, ?, ?, ?, ?, ?, ?)`);
-  const info = ins.run('local-demo-user-1', 'demo', 'Demo User', null, null, Date.now(), 'idle');
+  const info = ins.run(githubUserId, githubLogin, githubLogin, null, null, Date.now(), 'idle');
   return Number(info.lastInsertRowid);
 }
 
 export async function POST() {
   const db = getDb();
-  const candidateId = getOrCreateDemoCandidateId();
+  const state = db.prepare('SELECT value FROM app_state WHERE key = ?').get('current_github_user_id') as { value: string } | undefined;
+  const login = state?.value || null;
+  if (!login) return NextResponse.json({ error: 'No connected GitHub user. Connect first.' }, { status: 400 });
+
+  const candidateId = getOrCreateCandidateByGithubUserId(login, login);
 
   const jobIns = db.prepare(`INSERT INTO evaluation_job (candidate_id, status, created_at, progress) VALUES (?, 'queued', ?, 0)`);
   const jobInfo = jobIns.run(candidateId, Date.now());
@@ -63,8 +67,9 @@ export async function POST() {
         }
         db.prepare('UPDATE candidate SET last_evaluated_at = ?, evaluation_status = ? WHERE id = ?').run(Date.now(), 'success', candidateId);
       })();
-    } catch (e: any) {
-      db.prepare('UPDATE evaluation_job SET status = \'error\', error = ? WHERE id = ?').run(e?.message || 'error', jobId);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'error';
+      db.prepare('UPDATE evaluation_job SET status = \'error\', error = ? WHERE id = ?').run(message, jobId);
       db.prepare('UPDATE candidate SET evaluation_status = \'error\' WHERE id = ?').run(candidateId);
       return;
     }

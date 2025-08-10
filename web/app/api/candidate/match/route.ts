@@ -5,7 +5,11 @@ import { fromJson, cosineSimilarity } from '@/lib/text';
 export async function POST() {
   const db = getDb();
 
-  const candRow = db.prepare('SELECT id FROM candidate WHERE github_user_id = ?').get('local-demo-user-1') as { id: number } | undefined;
+  const state = db.prepare('SELECT value FROM app_state WHERE key = ?').get('current_github_user_id') as { value: string } | undefined;
+  const login = state?.value || null;
+  if (!login) return NextResponse.json({ top: [] });
+
+  const candRow = db.prepare('SELECT id FROM candidate WHERE github_user_id = ?').get(login) as { id: number } | undefined;
   if (!candRow) return NextResponse.json({ top: [] });
   const candidateId = candRow.id;
 

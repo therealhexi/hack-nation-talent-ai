@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,14 +11,26 @@ type Skill = { skill: string; score: number; reasoning: string };
 
 type EvalStatus = { status: string; progress: number; error?: string };
 
-type MatchTopSkill = { job_skill: string; candidate_skill: string };
-type MatchItem = { job_id: number; job_title: string; company: string; score: number; top_skills: MatchTopSkill[] };
+type MatchTopSkill = { job_skill: string; candidate_skill: string; similarity: number; candidate_score: number };
+
+type MatchItem = {
+  job_id: number;
+  job_title: string;
+  company: string;
+  job_url: string | null;
+  score: number;
+  top_skills: MatchTopSkill[];
+};
 
 export default function CandidatesPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [jobId, setJobId] = useState<number | null>(null);
   const [status, setStatus] = useState<EvalStatus | null>(null);
   const [matches, setMatches] = useState<MatchItem[]>([]);
+  const [githubInput, setGithubInput] = useState<string>("");
+  const [connectMessage, setConnectMessage] = useState<string>("");
+  const [connecting, setConnecting] = useState<boolean>(false);
+  const [connectedLogin, setConnectedLogin] = useState<string | null>(null);
 
   async function loadSkills() {
     const res = await fetch("/api/candidate/skills");
@@ -26,15 +38,48 @@ export default function CandidatesPage() {
     setSkills(json.skills || []);
   }
 
+  async function loadConnected() {
+    const res = await fetch('/api/candidate/connect');
+    if (res.ok) {
+      const json = await res.json();
+      setConnectedLogin(json.login || null);
+      if (json.login && !githubInput) setGithubInput(json.login);
+    }
+  }
+
+  async function connectGithub() {
+    setConnecting(true);
+    setConnectMessage("");
+    const res = await fetch('/api/candidate/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ github: githubInput })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setConnectMessage(json.error || 'Failed to connect');
+      setConnectedLogin(null);
+    } else {
+      setConnectMessage(`Connected as ${json.login}`);
+      setConnectedLogin(json.login);
+    }
+    setConnecting(false);
+  }
+
   async function startEvaluation() {
     setStatus({ status: "queued", progress: 0 });
     setMatches([]);
     const res = await fetch("/api/candidate/evaluate", { method: "POST" });
     const json = await res.json();
+    if (!res.ok) {
+      setStatus({ status: 'error', progress: 0, error: json.error || 'No connected user' });
+      return;
+    }
     setJobId(json.jobId);
   }
 
   useEffect(() => {
+    loadConnected();
     loadSkills();
   }, []);
 
@@ -68,14 +113,28 @@ export default function CandidatesPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Candidate Dashboard</h1>
-          <p className="mt-1 text-[--color-muted-foreground]">Stubbed auth: acting as Demo User.</p>
+          <p className="mt-1 text-[--color-muted-foreground]">Enter your GitHub URL or username, then evaluate your skills.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={startEvaluation} disabled={status?.status === "running"}>
+          <Button onClick={startEvaluation} disabled={status?.status === "running" || !connectedLogin}>
             {status?.status === "running" ? "Evaluating…" : "Evaluate Skills"}
           </Button>
-          <Button variant="secondary" onClick={runMatch}>Match Jobs</Button>
+          <Button variant="secondary" onClick={runMatch} disabled={!connectedLogin}>Match Jobs</Button>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+        <input
+          value={githubInput}
+          onChange={(e) => setGithubInput(e.target.value)}
+          placeholder="https://github.com/username or username"
+          className="h-10 w-full md:w-96 rounded-[var(--radius-sm)] border border-[--color-border] bg-white px-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-[--color-ring]"
+        />
+        <Button onClick={connectGithub} disabled={connecting || !githubInput.trim()}>
+          {connecting ? 'Connecting…' : 'Connect GitHub'}
+        </Button>
+        {connectMessage && <div className="text-sm text-[--color-muted-foreground]">{connectMessage}</div>}
+        {connectedLogin && <div className="text-sm">Connected: <span className="font-medium">{connectedLogin}</span></div>}
       </div>
 
       {status && (

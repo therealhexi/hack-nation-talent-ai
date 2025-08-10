@@ -145,6 +145,11 @@ function bootstrapSchema(database: Database.Database) {
     error TEXT,
     FOREIGN KEY (candidate_id) REFERENCES candidate(id)
   );
+
+  CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
   `;
 
   database.exec(schemaSql);
