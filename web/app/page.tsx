@@ -1,12 +1,28 @@
+import Link from 'next/link';
+
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="text-3xl font-bold">Talent AI</h1>
-      <p className="mt-2 text-slate-600">Connect GitHub, evaluate skills, and match to jobs. Demo build.</p>
-      <div className="mt-6 flex gap-3">
-        <a href="/candidates" className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Candidate</a>
-        <a href="/jobs" className="rounded bg-slate-200 px-4 py-2 hover:bg-slate-300">Jobs</a>
+    <section className="mx-auto max-w-4xl py-12">
+      <div className="bg-subtle-gradient card-surface p-8">
+        <h1 className="text-4xl font-semibold tracking-tight">Talent AI</h1>
+        <p className="mt-2 text-[--color-muted-foreground]">Connect GitHub, evaluate skills, and match to jobs. Demo build.</p>
+        <div className="mt-6 flex gap-3">
+          <Link
+            href="/candidates"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[--color-accent] px-4 py-2 text-white border border-[--color-border] shadow-sm hover:opacity-95"
+          >
+            <span className="underline underline-offset-4 decoration-white">Candidate</span>
+            <span aria-hidden>→</span>
+          </Link>
+          <Link
+            href="/jobs"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[--color-primary] px-4 py-2 text-[--color-foreground] border border-[--color-border] shadow-sm hover:opacity-95"
+          >
+            <span>Jobs</span>
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
       </div>
-    </main>
+    </section>
   );
 } 

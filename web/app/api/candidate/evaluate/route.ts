@@ -42,6 +42,8 @@ export async function POST() {
         { skill: 'Next.js', score: 0.85, reasoning: 'Project structure and commit messages reference Next.js app router and Tailwind.' },
         { skill: 'Tailwind CSS', score: 0.7, reasoning: 'Significant commits touching Tailwind styles.' },
         { skill: 'SQLite', score: 0.6, reasoning: 'Dependencies and DB helpers suggest SQLite usage.' },
+        { skill: 'OpenAIAgentsSDK', score: 0.8, reasoning: 'Recent commits reference OpenAIAgentsSDK.' },
+        { skill: 'AI', score: 0.6, reasoning: 'Recent commits reference OpenAIAgentsSDK.' },
       ];
 
       // Load vocabulary

@@ -1,6 +1,10 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 type Job = {
   id: number;
@@ -41,46 +45,52 @@ export default function JobsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl p-6">
+    <section className="mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Jobs</h1>
-        <button className="rounded bg-blue-600 px-3 py-2 text-white disabled:opacity-50" onClick={loadJobs} disabled={loading}>
-          {loading ? 'Loading…' : 'Load demo jobs'}
-        </button>
+        <h1 className="text-3xl font-semibold tracking-tight">Jobs</h1>
+        <Button onClick={loadJobs} disabled={loading}>{loading ? 'Loading…' : 'Load demo jobs'}</Button>
       </div>
-      {message && <p className="mt-2 text-sm text-slate-600">{message}</p>}
-      <div className="mt-6 overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="p-2">Title</th>
-              <th className="p-2">Company</th>
-              <th className="p-2">Location</th>
-              <th className="p-2">Skills</th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.map((j) => {
-              const skills: string[] = JSON.parse(j.skills_tech_stack || '[]');
-              return (
-                <tr key={j.id} className="border-b hover:bg-slate-50">
-                  <td className="p-2"><a className="text-blue-600 hover:underline" href={`/jobs/${j.id}`}>{j.job_title}</a></td>
-                  <td className="p-2">{j.company || '-'}</td>
-                  <td className="p-2">{[j.location_city, j.location_state, j.location_country].filter(Boolean).join(', ')}</td>
-                  <td className="p-2">
-                    <div className="flex flex-wrap gap-1">
-                      {skills.slice(0, 8).map((s, i) => (
-                        <span key={i} className="rounded bg-slate-200 px-2 py-0.5 text-xs">{s}</span>
-                      ))}
-                      {skills.length > 8 && <span className="text-xs text-slate-500">+{skills.length - 8} more</span>}
-                    </div>
-                  </td>
+      {message && <p className="mt-2 text-sm text-[--color-muted-foreground]">{message}</p>}
+
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="text-sm text-[--color-muted-foreground]">{jobs.length} jobs</div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[--color-border]">
+                  <th className="p-2">Title</th>
+                  <th className="p-2">Company</th>
+                  <th className="p-2">Location</th>
+                  <th className="p-2">Skills</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </main>
+              </thead>
+              <tbody>
+                {jobs.map((j) => {
+                  const skills: string[] = JSON.parse(j.skills_tech_stack || '[]');
+                  return (
+                    <tr key={j.id} className="border-b border-[--color-border] hover:bg-[--color-primary]">
+                      <td className="p-2"><Link className="inline-flex font-medium items-center gap-1 text-[--color-accent] decoration-[--color-accent] hover:opacity-90" href={`/jobs/${j.id}`}>{j.job_title}<span aria-hidden>→</span></Link></td>
+                      <td className="p-2">{j.company || '-'}</td>
+                      <td className="p-2">{[j.location_city, j.location_state, j.location_country].filter(Boolean).join(', ')}</td>
+                      <td className="p-2">
+                        <div className="flex flex-wrap gap-1">
+                          {skills.slice(0, 8).map((s, i) => (
+                            <Badge key={i} className="bg-[--color-primary]">{s}</Badge>
+                          ))}
+                          {skills.length > 8 && <span className="text-xs text-[--color-muted-foreground]">+{skills.length - 8} more</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 } 

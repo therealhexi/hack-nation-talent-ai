@@ -4,6 +4,23 @@ import path from 'path';
 import { getDb } from '@/lib/db';
 import { tokenizeUnigramsBigrams, tfidfVector, toJson } from '@/lib/text';
 
+interface RawJobLineLocation { city?: string; state?: string; country?: string }
+interface RawJobLine {
+  job_title?: string;
+  company?: string;
+  location?: RawJobLineLocation;
+  experience_level?: string;
+  years_of_experience?: string;
+  employment_type?: string;
+  posted_date_relative?: string;
+  tasks?: string[];
+  perks_benefits?: string[];
+  skills_tech_stack?: string[];
+  educational_requirements?: string[];
+  job_url?: string;
+  apply_url?: string;
+}
+
 export async function POST() {
   try {
     const db = getDb();
@@ -38,35 +55,36 @@ export async function POST() {
       clearJobs.run();
 
       for (const line of lines) {
-        let obj: any;
+        let obj: unknown;
         try {
-          obj = JSON.parse(line) as any;
+          obj = JSON.parse(line) as unknown;
         } catch {
           continue; // skip non-JSON lines
         }
-        if (!obj || typeof obj !== 'object' || !obj.job_title) continue;
-        const loc = obj.location || {};
-        const tasks = JSON.stringify(obj.tasks || []);
-        const perks = JSON.stringify(obj.perks_benefits || []);
-        const skillsArr: string[] = Array.isArray(obj.skills_tech_stack) ? obj.skills_tech_stack : [];
+        const rec = obj as RawJobLine;
+        if (!rec || typeof rec !== 'object' || !rec.job_title) continue;
+        const loc = rec.location || {};
+        const tasks = JSON.stringify(rec.tasks || []);
+        const perks = JSON.stringify(rec.perks_benefits || []);
+        const skillsArr: string[] = Array.isArray(rec.skills_tech_stack) ? rec.skills_tech_stack : [];
         const skills = JSON.stringify(skillsArr);
-        const edu = JSON.stringify(obj.educational_requirements || []);
+        const edu = JSON.stringify(rec.educational_requirements || []);
         const info = insertJob.run(
-          String(obj.job_title),
-          obj.company ? String(obj.company) : null,
+          String(rec.job_title),
+          rec.company ? String(rec.company) : null,
           loc.city ? String(loc.city) : null,
           loc.state ? String(loc.state) : null,
           loc.country ? String(loc.country) : null,
-          obj.experience_level ? String(obj.experience_level) : null,
-          obj.years_of_experience ? String(obj.years_of_experience) : null,
-          obj.employment_type ? String(obj.employment_type) : null,
-          obj.posted_date_relative ? String(obj.posted_date_relative) : null,
+          rec.experience_level ? String(rec.experience_level) : null,
+          rec.years_of_experience ? String(rec.years_of_experience) : null,
+          rec.employment_type ? String(rec.employment_type) : null,
+          rec.posted_date_relative ? String(rec.posted_date_relative) : null,
           tasks,
           perks,
           skills,
           edu,
-          obj.job_url ? String(obj.job_url) : null,
-          obj.apply_url ? String(obj.apply_url) : null,
+          rec.job_url ? String(rec.job_url) : null,
+          rec.apply_url ? String(rec.apply_url) : null,
         );
         const jobId = Number(info.lastInsertRowid);
         jobIds.push(jobId);
@@ -75,7 +93,7 @@ export async function POST() {
 
       if (jobIds.length === 0) {
         // Seed a small demo set
-        const demo: any[] = [
+        const demo: RawJobLine[] = [
           {
             job_title: 'AI/ML Engineer',
             company: 'Acme AI',
@@ -107,29 +125,29 @@ export async function POST() {
             apply_url: 'https://example.com/job/2/apply',
           },
         ];
-        for (const obj of demo) {
-          const loc = obj.location || {};
-          const tasks = JSON.stringify(obj.tasks || []);
-          const perks = JSON.stringify(obj.perks_benefits || []);
-          const skillsArr: string[] = obj.skills_tech_stack || [];
+        for (const rec of demo) {
+          const loc = rec.location || {};
+          const tasks = JSON.stringify(rec.tasks || []);
+          const perks = JSON.stringify(rec.perks_benefits || []);
+          const skillsArr: string[] = rec.skills_tech_stack || [];
           const skills = JSON.stringify(skillsArr);
-          const edu = JSON.stringify(obj.educational_requirements || []);
+          const edu = JSON.stringify(rec.educational_requirements || []);
           const info = insertJob.run(
-            obj.job_title,
-            obj.company,
-            loc.city || null,
-            loc.state || null,
-            loc.country || null,
-            obj.experience_level || null,
-            obj.years_of_experience || null,
-            obj.employment_type || null,
-            obj.posted_date_relative || null,
+            rec.job_title!,
+            rec.company || null,
+            (loc.city as string) || null,
+            (loc.state as string) || null,
+            (loc.country as string) || null,
+            rec.experience_level || null,
+            rec.years_of_experience || null,
+            rec.employment_type || null,
+            rec.posted_date_relative || null,
             tasks,
             perks,
             skills,
             edu,
-            obj.job_url || null,
-            obj.apply_url || null,
+            rec.job_url || null,
+            rec.apply_url || null,
           );
           const jobId = Number(info.lastInsertRowid);
           jobIds.push(jobId);
@@ -174,7 +192,8 @@ export async function POST() {
     })();
 
     return NextResponse.json({ inserted: jobIds.length, vocabulary_size: Object.keys(idfMap).length });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'unknown error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 } 
