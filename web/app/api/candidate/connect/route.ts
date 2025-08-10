@@ -3,9 +3,13 @@ import { getDb } from '@/lib/db';
 
 function extractLoginFromUrlOrLogin(input: string): string | null {
   try {
+    // Normalize and allow optional leading '@'
+    const raw = String(input || '').trim();
+    const cleaned = raw.startsWith('@') ? raw.slice(1) : raw;
+
     // If it's a URL, parse pathname
-    if (input.startsWith('http://') || input.startsWith('https://')) {
-      const u = new URL(input);
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+      const u = new URL(cleaned);
       const parts = u.pathname.split('/').filter(Boolean);
       return parts[0] || null;
     }

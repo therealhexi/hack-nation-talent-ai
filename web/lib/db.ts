@@ -9,6 +9,7 @@ export function getDb(): Database.Database {
   const dbFilePath = path.join(process.cwd(), 'talent-ai.db');
   db = new Database(dbFilePath);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   bootstrapSchema(db);
   return db;
 }
